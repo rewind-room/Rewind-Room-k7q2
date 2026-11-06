@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rewind Room</title>
+<meta name="apple-mobile-web-app-title" content="Rewind Room">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1f1620">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📼%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eef1f4; --panel:#ffffff; --ink:#18232f; --muted:#5d6b79; --line:#d6dde4;
+  --accent:#2f4bdb; --accent-ink:#ffffff; --ok:#16794c; --new:#c2410c; --new-bg:#fff1e6;
+  --head:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#10171e; --panel:#19232d; --ink:#e8eef4; --muted:#93a2b1; --line:#2b3947;
+    --accent:#7d93ff; --accent-ink:#0d1330; --ok:#52c28f; --new:#ffa766; --new-bg:#33231a;}
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--body)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+header{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:16px 20px;max-width:1100px;margin:0 auto}
+h1{font:700 26px/1 var(--head);margin:0;letter-spacing:-.02em;margin-right:auto}
+.searchbox{flex:1 1 280px;max-width:420px}
+.searchbox input{width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.btn{border:1px solid var(--line);background:var(--panel);padding:7px 12px;border-radius:8px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.small{padding:4px 9px;font-size:13px}
+nav{display:flex;gap:4px;padding:0 20px;max-width:1100px;margin:0 auto;overflow-x:auto;border-bottom:1px solid var(--line)}
+nav button{background:none;border:0;border-bottom:3px solid transparent;padding:10px 12px;cursor:pointer;color:var(--muted);white-space:nowrap;font-weight:500}
+nav button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent)}
+nav .n{color:var(--muted);font-weight:400;margin-left:4px}
+main{max-width:1100px;margin:0 auto;padding:18px 20px 60px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:14px}
+@media(max-width:520px){.grid{grid-template-columns:1fr}}
+.card{display:flex;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px}
+.card.hasnew{border-left:4px solid var(--new)}
+.poster{width:84px;flex:none;aspect-ratio:2/3;border-radius:6px;object-fit:cover;background:var(--line)}
+.body{min-width:0;flex:1;display:flex;flex-direction:column;gap:6px}
+.title{font:700 17px/1.2 var(--head);margin:0}
+.small{font-size:13px}.muted{color:var(--muted)}.ok{color:var(--ok)}
+.badge{display:inline-block;background:var(--new-bg);color:var(--new);border-radius:5px;padding:1px 7px;font-size:12px;font-weight:600;margin-left:6px;vertical-align:2px}
+.badge.auto{background:var(--line);color:var(--muted)}
+.where{display:flex;gap:5px;flex-wrap:wrap}
+.logo{width:28px;height:28px;border-radius:6px;opacity:.45}
+.logo.mine{opacity:1;outline:2px solid var(--ok);outline-offset:1px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row input[type=number]{width:54px;padding:3px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
+.row select{padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
+.push{margin-left:auto}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent)}
+.prog{display:flex;flex-direction:column;gap:6px}
+.btn:disabled{opacity:.4;cursor:default}
+.btn:disabled:hover{border-color:var(--line)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+.stat b{display:block;font:700 34px/1.1 var(--head);letter-spacing:-.02em}
+.stat span{color:var(--muted);font-size:13px}
+.stat.big{border-left:4px solid var(--accent)}
+.stat.txt b{font-size:22px;line-height:1.2}
+.link{cursor:pointer}
+.title.link:hover,.mini b.link:hover{text-decoration:underline}
+.detail{position:fixed;inset:0;z-index:40;overflow:auto;background:#0d1218;color:#eef3f8;--bg:#0d1218;--panel:#18212b;--line:#2a3846;--muted:#9aa9b8;--ink:#eef3f8;--accent:#8ea2ff;--accent-ink:#0d1330;--ok:#52c28f;overscroll-behavior:contain}
+.detail[hidden]{display:none}
+.dwrap{max-width:720px;margin:0 auto;padding:0 18px}
+.hero{position:relative;min-height:66vh;display:flex;align-items:flex-end;background-color:#1b2733;background-size:cover;background-position:center top}
+.hero::before{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,rgba(13,18,24,.45) 0%,rgba(13,18,24,0) 28%,rgba(13,18,24,.55) 62%,#0d1218 100%)}
+.hero-in{position:relative;width:100%;text-align:center;padding-bottom:16px}
+.dback{position:absolute;z-index:2;top:max(14px,env(safe-area-inset-top,0px));left:14px;width:42px;height:42px;border-radius:50%;border:0;background:rgba(150,210,230,.3);backdrop-filter:blur(8px);color:#fff;font-size:28px;line-height:1;cursor:pointer}
+.dtitle{font:700 clamp(34px,9vw,52px)/1.02 var(--head);letter-spacing:-.03em;margin:0 0 10px;text-shadow:0 2px 18px rgba(0,0,0,.45)}
+.dmeta{font-size:15px;color:#e2eaf1;margin:3px 0}
+.pillrow{display:flex;gap:10px;justify-content:center;margin-top:16px}
+.pillwrap{position:relative;display:inline-flex;align-items:center;gap:8px;background:rgba(210,215,222,.88);color:#18232f;border-radius:999px;padding:0 14px}
+.pill{appearance:none;-webkit-appearance:none;background:none;border:0;color:inherit;font-weight:600;padding:12px 20px 12px 0;cursor:pointer}
+.pillwrap span{pointer-events:none;position:absolute;right:12px;font-size:12px}
+.dot{width:16px;height:16px;border-radius:50%;background:#18232f;box-shadow:inset -8px 0 0 rgba(255,255,255,.55)}
+.roundbtn{width:46px;height:46px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(20,28,36,.55);color:#fff;font-size:20px;cursor:pointer}
+.dbody{padding-top:8px;padding-bottom:70px}
+.prov{display:flex;flex-direction:column;gap:8px;margin:10px 0 20px}
+.detail .logo{width:46px;height:46px;border-radius:11px}
+.attr{font-size:11px;letter-spacing:.06em;color:var(--muted)}
+.attr b{display:block;font-size:17px;letter-spacing:0;color:#f2c94c}
+.seg{display:flex;background:#1d2833;border-radius:999px;padding:3px;margin:6px 0 18px}
+.seg button{flex:1;border:0;background:none;color:#c6d2de;padding:10px;border-radius:999px;font-weight:500;cursor:pointer}
+.seg button[aria-selected=true]{background:#56626f;color:#fff}
+.ov{font-size:16px;line-height:1.55;margin:0 0 14px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px}
+.chip{background:var(--panel);border:1px solid var(--line);color:var(--ink);padding:6px 12px;border-radius:999px;font-size:14px;white-space:nowrap}
+button.chip{cursor:pointer}
+button.chip[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.facts{background:var(--panel);border-radius:12px;padding:4px 14px}
+.fact{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid var(--line)}
+.fact:last-child{border:0}
+.fact span{color:var(--muted)}
+.fact b{font-weight:500;text-align:right}
+.dh{font:700 20px var(--head);margin:24px 0 10px}
+.cast{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px}
+.cm{width:92px;flex:none;display:flex;flex-direction:column;gap:2px;font-size:13px}
+.cm img,.cm .ph{width:92px;height:92px;border-radius:50%;object-fit:cover;background:var(--line);margin-bottom:4px}
+.cm span{color:var(--muted)}
+.wn-head{display:flex;justify-content:space-between;align-items:baseline;margin:6px 0 10px}
+.wn-head b{font:700 22px var(--head)}
+.wn{display:flex;gap:12px;background:var(--panel);border-radius:14px;overflow:hidden;margin-bottom:18px}
+.still{width:140px;flex:none;background:var(--line) center/cover}
+.wn-in{padding:12px 12px 12px 0;display:flex;flex-direction:column;gap:6px;justify-content:center;min-width:0}
+.wn:not(:has(.still)) .wn-in{padding-left:12px}
+.sbar{display:flex;align-items:center;gap:10px;margin:4px 0 12px;flex-wrap:wrap}
+.ep{display:grid;grid-template-columns:1fr auto;gap:8px 12px;align-items:center;background:var(--panel);border-radius:12px;padding:8px;margin-bottom:8px}
+.ep.future{opacity:.6}
+.ep-main{display:flex;gap:12px;align-items:center;min-width:0;cursor:pointer}
+.ep-still{width:110px;aspect-ratio:16/9;flex:none;border-radius:8px;object-fit:cover;background:var(--line)}
+.ep-t{min-width:0}
+.ep-ov{grid-column:1/-1;margin:0 4px 4px;color:#d3dde7;line-height:1.5}
+.check{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);background:none;color:#fff;font-size:18px;cursor:pointer}
+.check.on{background:var(--ok);border-color:var(--ok);color:#06210f}
+.check:disabled{opacity:.35;cursor:default}
+.mini-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.mini{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+.mini img{width:100%;aspect-ratio:2/3;object-fit:cover;background:var(--line)}
+.mini .in{padding:8px;display:flex;flex-direction:column;gap:6px;flex:1}
+.mini .row{margin-top:auto}
+h2{font:700 20px/1.2 var(--head);margin:26px 0 12px}
+h2:first-child{margin-top:0}
+.empty{background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:26px;text-align:center;color:var(--muted)}
+.upl{display:grid;grid-template-columns:110px 1fr auto;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+@media(max-width:520px){.upl{grid-template-columns:1fr}}
+.results{position:absolute;z-index:10;left:0;right:0;top:100%;margin-top:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.18);max-height:70vh;overflow:auto}
+.searchbox{position:relative}
+.res{display:flex;gap:10px;padding:8px;border-bottom:1px solid var(--line);align-items:center}
+.res:last-child{border:0}
+.res img{width:40px;aspect-ratio:2/3;object-fit:cover;border-radius:4px;background:var(--line)}
+.res .t{flex:1;min-width:0}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);width:min(680px,94vw);padding:20px;max-height:90vh}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog h3{font:700 20px var(--head);margin:0 0 12px}
+dialog label.f{display:block;margin:12px 0 4px;font-weight:600}
+dialog input[type=text],dialog input[type=password]{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.plist{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:4px 12px;max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:8px;margin-top:6px}
+.plist label{display:flex;gap:6px;align-items:center;font-size:14px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:14px;z-index:50}
+@media(prefers-reduced-motion:no-preference){.card,.mini{transition:border-color .15s}}
+
+/* Rewind Room theme: cozy living room at night, with a VHS and CRT feel */
+:root{--bg:#f4e9d8;--panel:#fff8ec;--ink:#3a2a22;--muted:#7d6a5c;--line:#e0cfb8;--accent:#c8553d;--accent-ink:#fff8ec;--ok:#46784d;--new:#b4580f;--new-bg:#fde7d0;--glow:rgba(200,85,61,.12);--head:'Fraunces',Georgia,serif;--mono:'Space Mono',ui-monospace,Menlo,monospace;--body:ui-rounded,'SF Pro Rounded',system-ui,-apple-system,'Segoe UI',sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#1f1620;--panel:#2b2029;--ink:#f6e7d2;--muted:#b9a593;--line:#43343f;--accent:#ffb454;--accent-ink:#2a1a05;--ok:#8bd48f;--new:#ff9d66;--new-bg:#3a2418;--glow:rgba(255,180,84,.13)}}
+body{background-image:radial-gradient(900px 420px at 85% -8%,var(--glow),transparent 62%)}
+header h1{font-weight:800;font-size:30px;letter-spacing:-.01em}
+header h1::before{content:'▶';color:var(--accent);font-size:.55em;margin-right:9px;vertical-align:.18em}
+h1 small{display:block;font:400 11px/1.4 var(--mono);color:var(--muted);letter-spacing:.04em;margin-top:6px}
+h2{letter-spacing:-.01em}
+.card,.mini,.upl,.stat,.ep,.facts,.wn,.empty{border-radius:14px}
+.card,.mini,.upl,.stat{border:2px solid var(--line);box-shadow:3px 3px 0 var(--line)}
+.empty{border:2px dashed var(--line)}
+.btn,.btn.small,.searchbox input{border-radius:999px}
+nav{border-bottom:2px dashed var(--line);gap:6px;padding-bottom:12px}
+nav button{font:700 12px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;border:2px solid var(--line);border-radius:999px;padding:9px 14px;background:var(--panel);color:var(--muted)}
+nav button[aria-selected=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+nav .n{font-weight:400;opacity:.8}
+.badge,.stat span,.attr{font-family:var(--mono)}
+.detail{background:#1a1219;color:#f6e7d2;--bg:#1a1219;--panel:#2b2029;--line:#43343f;--muted:#b9a593;--ink:#f6e7d2;--accent:#ffb454;--accent-ink:#2a1a05;--ok:#8bd48f}
+.hero{background-color:#2b2029}
+.hero::before{background:linear-gradient(to bottom,rgba(26,18,25,.45) 0%,rgba(26,18,25,0) 28%,rgba(26,18,25,.55) 62%,#1a1219 100%)}
+.hero::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(to bottom,rgba(0,0,0,.14) 0,rgba(0,0,0,.14) 1px,transparent 1px,transparent 3px)}
+.hero-in{z-index:1}
+.dtitle{text-shadow:0 0 22px rgba(255,180,84,.28),0 2px 18px rgba(0,0,0,.5)}
+.seg{background:#33252f}
+.seg button{color:#e0cdb8}
+.seg button[aria-selected=true]{background:#6b4f52;color:#fff}
+.attr b{color:#ffb454}
+</style>
+</head>
+<body>
+<header>
+  <h1>Rewind Room<small>what are we watching tonight?</small></h1>
+  <div class="searchbox">
+    <input id="q" type="search" placeholder="Search for a show to add" autocomplete="off" aria-label="Search for a show">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <button class="btn" id="refreshBtn" title="Check for new episodes and streaming changes">Refresh</button>
+  <button class="btn" id="settingsBtn">Settings</button>
+</header>
+<nav id="tabs" role="tablist"></nav>
+<main id="main"></main>
+
+<div id="detail" class="detail" hidden role="dialog" aria-modal="true" aria-label="Show details"><div id="dinner"></div></div>
+
+<dialog id="dlg">
+  <h3>Settings</h3>
+  <label class="f" for="key">TMDB API key or read access token</label>
+  <input id="key" type="password" autocomplete="off" placeholder="Paste your key here">
+  <p class="small muted">Free from themoviedb.org: create an account, then Settings, API. The key stays in this browser and is only sent to TMDB.</p>
+  <label class="f" for="region">Country code for streaming availability</label>
+  <input id="region" type="text" maxlength="2" style="width:80px;text-transform:uppercase">
+  <label class="f">Your streaming services <span class="muted" style="font-weight:400">(every service TMDB knows is listed)</span></label>
+  <input id="pfilter" type="text" placeholder="Filter services">
+  <div id="plist" class="plist"><span class="muted small">Enter a key and country to load services.</span></div>
+  <label class="f" style="display:flex;gap:8px;align-items:flex-start;font-weight:400">
+    <input type="checkbox" id="auto" style="margin-top:4px">
+    <span>Automatically add popular new premieres on my services to my Watchlist (checked about twice a day). Shows you remove won’t come back.</span>
+  </label>
+  <label class="f" for="gtoken">Sync between devices (optional)</label>
+  <input id="gtoken" type="password" autocomplete="off" placeholder="GitHub token with gist access">
+  <p class="small muted" id="syncStatus"></p>
+  <div class="row"><button class="btn small" id="syncNowBtn" type="button">Sync now</button><button class="btn small" id="syncOffBtn" type="button">Disconnect</button></div>
+  <div class="row" style="margin-top:18px">
+    <button class="btn small" id="exportBtn">Export backup</button>
+    <button class="btn small" id="importBtn">Import backup</button>
+    <input type="file" id="importFile" accept="application/json" hidden>
+    <span class="push"></span>
+    <button class="btn" id="cancelBtn">Cancel</button>
+    <button class="btn primary" id="saveBtn">Save settings</button>
+  </div>
+</dialog>
+
+<script>
+const IMG = 'https://image.tmdb.org/t/p/';
+const LS = 'myshows.v1';
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const STATUS = {watching:'Watching', watchlist:'Watchlist', watched:'Watched'};
+const TABS = [['watching','Watching'],['watchlist','Watchlist'],['watched','Watched'],['upcoming','Upcoming'],['discover','Channel Surfing'],['profile','Tape Library']];
+let tab = 'watching';
+let disc = null;
+
+/* ---------- storage ---------- */
+function load(){
+  try { const d = JSON.parse(localStorage.getItem(LS)); if (d && d.settings) return d; } catch(e){}
+  return {settings:{key:'',region:'US',providers:[],autoAdd:false,providersSet:false}, shows:{}, seen:{}, lastAuto:0, providerList:null};
+}
+let S = load();
+function save(touch = true){
+  if (touch) { S.modified = Date.now(); scheduleSync(); }
+  try { localStorage.setItem(LS, JSON.stringify(S)); } catch(e){}
+}
+
+/* ---------- TMDB ---------- */
+async function api(path, params = {}){
+  const k = S.settings.key.trim();
+  const u = new URL('https://api.themoviedb.org/3' + path);
+  const headers = {};
+  if (k.length > 40) headers.Authorization = 'Bearer ' + k; else u.searchParams.set('api_key', k);
+  for (const [a,b] of Object.entries(params)) u.searchParams.set(a, b);
+  const r = await fetch(u.toString(), {headers});
+  if (!r.ok) throw new Error(r.status === 401 ? 'TMDB rejected the key. Check it in Settings.' : 'TMDB error ' + r.status);
+  return r.json();
+}
+function toInfo(d){
+  const wp = ((d['watch/providers'] || {}).results || {})[S.settings.region] || {};
+  const seen = new Set(), providers = [];
+  for (const t of ['flatrate','free','ads']) for (const p of (wp[t] || [])) {
+    if (!seen.has(p.provider_id)) { seen.add(p.provider_id); providers.push({id:p.provider_id, name:p.provider_name, logo:p.logo_path}); }
+  }
+  const le = d.last_episode_to_air, ne = d.next_episode_to_air;
+  return {
+    overview:d.overview, tmdbStatus:d.status, year:(d.first_air_date || '').slice(0,4), seasons:d.number_of_seasons,
+    runtime: (() => { const rt = (d.episode_run_time || []).filter(Boolean); return rt.length ? Math.round(rt.reduce((a, b) => a + b, 0) / rt.length) : ((le && le.runtime) || (ne && ne.runtime) || 0); })(),
+    genres:(d.genres || []).map(g => g.name),
+    seasonList:(d.seasons || []).filter(x => x.season_number > 0).map(x => ({n:x.season_number, c:x.episode_count})),
+    last: le ? {s:le.season_number, e:le.episode_number, date:le.air_date} : null,
+    next: ne ? {s:ne.season_number, e:ne.episode_number, date:ne.air_date, name:ne.name} : null,
+    providers, rentOnly: !providers.length && ((wp.rent || wp.buy || []).length > 0)
+  };
+}
+async function refreshShow(id){
+  const s = S.shows[id]; if (!s) return;
+  try {
+    const d = await api('/tv/' + id, {append_to_response:'watch/providers'});
+    s.info = toInfo(d); s.infoAt = Date.now(); s.name = d.name; if (d.poster_path) s.poster = d.poster_path;
+    save(false);
+  } catch(e){ toast(e.message); }
+}
+async function refreshAll(force){
+  const ids = Object.keys(S.shows).filter(id => {
+    const s = S.shows[id];
+    if (force) return true;
+    if (!s.info || !s.info.seasonList || s.info.runtime === undefined || s.info.genres === undefined) return true;
+    if (s.status === 'watched' && ['Ended','Canceled'].includes(s.info.tmdbStatus)) return false;
+    return Date.now() - (s.infoAt || 0) > 12 * 3600e3;
+  });
+  let i = 0;
+  const worker = async () => { while (i < ids.length) { await refreshShow(ids[i++]); render(); } };
+  await Promise.all([worker(), worker(), worker(), worker()]);
+}
+
+/* ---------- helpers ---------- */
+const mineSet = () => new Set(S.settings.providers);
+function cmp(a,b){ return a.s !== b.s ? a.s - b.s : a.e - b.e; }
+function hasNew(s){
+  const L = s.info && s.info.last; if (!L) return false;
+  if (s.status === 'watchlist') return false;
+  if (s.status === 'watched' && ['Ended','Canceled'].includes(s.info.tmdbStatus)) return false;
+  return cmp({s:L.s,e:L.e},{s:s.lastS||0,e:s.lastE||0}) > 0;
+}
+function fmtDate(d){
+  if (!d) return '';
+  const dt = new Date(d + 'T12:00:00');
+  const days = Math.round((dt - new Date(new Date().toDateString() + ' 12:00')) / 864e5);
+  const rel = days === 0 ? 'today' : days === 1 ? 'tomorrow' : days > 1 ? 'in ' + days + ' days' : Math.abs(days) + (days === -1 ? ' day ago' : ' days ago');
+  return dt.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}) + ' (' + rel + ')';
+}
+const ep = (s,e) => 'S' + s + 'E' + e;
+function toast(msg){
+  document.querySelectorAll('.toast').forEach(t => t.remove());
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.append(t);
+  setTimeout(() => t.remove(), 3500);
+}
+function whereHtml(s){
+  const i = s.info, mine = mineSet();
+  if (!i) return '<span class="muted small">Loading streaming info…</span>';
+  if (!i.providers.length) return '<span class="muted small">No streaming info for ' + esc(S.settings.region) + (i.rentOnly ? ' (rent or buy only)' : '') + '</span>';
+  const ps = [...i.providers].sort((a,b) => mine.has(b.id) - mine.has(a.id));
+  const onMine = ps.filter(p => mine.has(p.id));
+  return '<div class="where">' + ps.map(p => `<img class="logo ${mine.has(p.id) ? 'mine' : ''}" src="${IMG}w92${p.logo}" alt="${esc(p.name)}" title="${esc(p.name)}${mine.has(p.id) ? ' (you have this)' : ''}">`).join('') + '</div>' +
+    `<div class="small ${onMine.length ? 'ok' : 'muted'}">${onMine.length ? 'On ' + onMine.map(p => esc(p.name)).join(', ') : 'Not on your services'}</div>`;
+}
+function epLine(s){
+  const i = s.info; if (!i) return '';
+  if (i.next) return `<div class="small">Next episode: <b>${ep(i.next.s,i.next.e)}</b>, ${fmtDate(i.next.date)}</div>`;
+  if (['Ended','Canceled'].includes(i.tmdbStatus)) return `<div class="small muted">${i.tmdbStatus === 'Ended' ? 'Ended' : 'Canceled'}${i.last ? ', last episode ' + ep(i.last.s,i.last.e) : ''}</div>`;
+  return `<div class="small muted">No next episode date yet${i.last ? ', last aired ' + ep(i.last.s,i.last.e) : ''}</div>`;
+}
+
+/* ---------- views ---------- */
+const editing = new Set();
+const seasonList = s => (s.info && s.info.seasonList) || [];
+const seasonCount = (s, n) => { const x = seasonList(s).find(y => y.n === n); return x ? x.c : 0; };
+function nextEp(s){
+  const L = seasonList(s), S0 = s.lastS || 0, E0 = s.lastE || 0;
+  if (!L.length || !s.info.last) return null;
+  let n;
+  if (S0 === 0) n = {s:L[0].n, e:1};
+  else if (E0 < seasonCount(s, S0)) n = {s:S0, e:E0 + 1};
+  else { const nx = L.find(x => x.n > S0); n = nx ? {s:nx.n, e:1} : null; }
+  return n && cmp(n, s.info.last) <= 0 ? n : null;
+}
+function prevEp(s){
+  const S0 = s.lastS || 0, E0 = s.lastE || 0;
+  if (E0 > 1) return {s:S0, e:E0 - 1};
+  const p = seasonList(s).filter(x => x.n < S0).pop();
+  if (E0 === 1) return p ? {s:p.n, e:p.c} : {s:0, e:0};
+  return p ? {s:p.n, e:Math.max(p.c - 1, 0)} : {s:0, e:0};
+}
+function setProg(s, p){ s.lastS = p.s; s.lastE = p.e; save(); render(); }
+function airedTotals(s){
+  const i = s.info; if (!i || !i.last || !i.seasonList || !i.seasonList.length) return null;
+  let total = 0, watched = 0;
+  for (const x of i.seasonList) {
+    const aired = x.n < i.last.s ? x.c : x.n === i.last.s ? i.last.e : 0;
+    total += aired;
+    const S0 = s.lastS || 0;
+    watched += x.n < S0 ? aired : x.n === S0 ? Math.min(s.lastE || 0, aired) : 0;
+  }
+  return {total, watched};
+}
+function editorHtml(s){
+  const L = seasonList(s), S0 = s.lastS || 0, E0 = s.lastE || 0;
+  if (!L.length) return `<div class="row small">Season <input type="number" min="0" data-act="prog" data-k="lastS" data-id="${s.id}" value="${S0}" aria-label="Season watched"> Episode <input type="number" min="0" data-act="prog" data-k="lastE" data-id="${s.id}" value="${E0}" aria-label="Episode watched"></div>`;
+  const cnt = seasonCount(s, S0);
+  return `<div class="row small">Watched through
+    <select data-act="selS" data-id="${s.id}" aria-label="Season">
+      <option value="0" ${S0 === 0 ? 'selected' : ''}>Not started</option>
+      ${L.map(x => `<option value="${x.n}" ${x.n === S0 ? 'selected' : ''}>Season ${x.n}</option>`).join('')}
+    </select>
+    ${S0 ? `<select data-act="selE" data-id="${s.id}" aria-label="Episode"><option value="0">No episodes of this season</option>${Array.from({length:cnt}, (_, k) => `<option value="${k + 1}" ${k + 1 === E0 ? 'selected' : ''}>Episode ${k + 1}</option>`).join('')}</select>` : ''}
+  </div>`;
+}
+function progressHtml(s, isNew){
+  const S0 = s.lastS || 0, E0 = s.lastE || 0, t = airedTotals(s);
+  const pct = t && t.total ? Math.round(100 * t.watched / t.total) : 0;
+  const nx = nextEp(s), open = editing.has(s.id);
+  return `<div class="prog">
+    ${t ? `<div class="bar" role="img" aria-label="${pct}% watched"><i style="width:${pct}%"></i></div>` : ''}
+    <div class="row small"><b>${S0 || E0 ? 'Season ' + S0 + ', episode ' + E0 : 'Not started'}</b>${t ? `<span class="muted">${t.watched} of ${t.total} aired episodes watched</span>` : ''}</div>
+    <div class="row">
+      <button class="btn small" data-act="stepback" data-id="${s.id}" ${S0 || E0 ? '' : 'disabled'} aria-label="Back one episode">−1</button>
+      <button class="btn small ${nx ? 'primary' : ''}" data-act="stepnext" data-id="${s.id}" ${nx ? '' : 'disabled'}>${nx ? 'Watched ' + ep(nx.s, nx.e) : 'Nothing new to watch'}</button>
+      ${isNew ? `<button class="btn small" data-act="caught" data-id="${s.id}">I’m caught up</button>` : ''}
+      <button class="btn small push" data-act="editprog" data-id="${s.id}">${open ? 'Done' : 'Set…'}</button>
+    </div>
+    ${open ? editorHtml(s) : ''}
+  </div>`;
+}
+function showCard(s){
+  const i = s.info, isNew = hasNew(s);
+  const progress = s.status === 'watchlist' ? '' : progressHtml(s, isNew);
+  const newBadge = isNew ? `<span class="badge">${s.status === 'watched' ? 'New episodes' : 'Unwatched episode' + (i.last && (s.lastS||0) === i.last.s && i.last.e - (s.lastE||0) === 1 ? '' : 's')}</span>` : '';
+  return `<article class="card ${isNew ? 'hasnew' : ''}">
+    ${s.poster ? `<img class="poster link" data-act="open" data-id="${s.id}" loading="lazy" src="${IMG}w185${s.poster}" alt="">` : '<div class="poster"></div>'}
+    <div class="body">
+      <h3 class="title link" data-act="open" data-id="${s.id}" tabindex="0" role="button">${esc(s.name)}${newBadge}${s.auto ? '<span class="badge auto">Auto-added</span>' : ''}</h3>
+      <div class="small muted">${i ? esc([i.year, i.seasons ? i.seasons + (i.seasons === 1 ? ' season' : ' seasons') : ''].filter(Boolean).join(', ')) : ''}</div>
+      ${whereHtml(s)}
+      ${epLine(s)}
+      ${progress}
+      <div class="row">
+        <select data-act="status" data-id="${s.id}" aria-label="Status">
+          ${Object.entries(STATUS).map(([k,v]) => `<option value="${k}" ${s.status === k ? 'selected' : ''}>${v}</option>`).join('')}
+        </select>
+        <button class="btn small push" data-act="remove" data-id="${s.id}">Remove</button>
+      </div>
+    </div></article>`;
+}
+function listView(status){
+  const list = Object.values(S.shows).filter(s => s.status === status)
+    .sort((a,b) => (hasNew(b) - hasNew(a)) || a.name.localeCompare(b.name));
+  if (!list.length) return `<div class="empty">Nothing on the shelf yet. Search above to add a show.</div>`;
+  return '<div class="grid">' + list.map(showCard).join('') + '</div>';
+}
+function upcomingView(){
+  const mine = mineSet();
+  const tracked = Object.values(S.shows).filter(s => s.status !== 'watched' && s.info);
+  const up = tracked.filter(s => s.info.next).sort((a,b) => a.info.next.date.localeCompare(b.info.next.date));
+  const recent = tracked.filter(s => s.status === 'watching' && s.info.last && s.info.last.date && (Date.now() - new Date(s.info.last.date + 'T12:00:00')) < 14 * 864e5);
+  const row = (s, e, label) => {
+    const onMine = s.info.providers.filter(p => mine.has(p.id)).map(p => p.name);
+    return `<div class="upl"><div class="small"><b>${esc(label)}</b></div>
+      <div><b class="link" data-act="open" data-id="${s.id}" tabindex="0" role="button">${esc(s.name)}</b> <span class="muted">${ep(e.s,e.e)}${e.name ? ', ' + esc(e.name) : ''}</span></div>
+      <div class="small ${onMine.length ? 'ok' : 'muted'}">${onMine.length ? esc(onMine.join(', ')) : 'Not on your services'}</div></div>`;
+  };
+  let h = '<h2>Coming up</h2>';
+  h += up.length ? up.map(s => row(s, s.info.next, fmtDate(s.info.next.date))).join('') : '<div class="empty">No dated episodes yet for shows you’re tracking.</div>';
+  if (recent.length) {
+    h += '<h2>Aired in the last two weeks</h2>';
+    h += recent.sort((a,b) => b.info.last.date.localeCompare(a.info.last.date)).map(s => row(s, s.info.last, fmtDate(s.info.last.date))).join('');
+  }
+  return h;
+}
+async function loadDiscover(){
+  const mine = S.settings.providers;
+  if (!mine.length) { disc = {err:'Pick your streaming services in Settings first.'}; return; }
+  const base = {with_watch_providers: mine.join('|'), watch_region: S.settings.region, watch_monetization_types:'flatrate|free|ads', sort_by:'popularity.desc', include_adult:'false'};
+  const since = new Date(Date.now() - 30 * 864e5).toISOString().slice(0,10);
+  try {
+    const [fresh, pop1, pop2] = await Promise.all([
+      api('/discover/tv', {...base, 'first_air_date.gte': since}),
+      api('/discover/tv', base),
+      api('/discover/tv', {...base, page:'2'})
+    ]);
+    disc = {fresh: fresh.results.slice(0,18), pop: pop1.results.concat(pop2.results).slice(0,40)};
+  } catch(e){ disc = {err:e.message}; }
+}
+function miniCard(r){
+  return `<div class="mini">${r.poster_path ? `<img class="link" data-act="open" data-id="${r.id}" loading="lazy" src="${IMG}w342${r.poster_path}" alt="">` : '<img alt="">'}
+    <div class="in"><b class="link" data-act="open" data-id="${r.id}" tabindex="0" role="button">${esc(r.name)}</b><span class="small muted">${esc((r.first_air_date || '').slice(0,4))}</span>
+    <div class="row"><button class="btn small" data-act="add" data-status="watchlist" data-id="${r.id}" data-name="${esc(r.name)}" data-poster="${esc(r.poster_path || '')}">Watchlist</button>
+    <button class="btn small" data-act="add" data-status="watching" data-id="${r.id}" data-name="${esc(r.name)}" data-poster="${esc(r.poster_path || '')}">Watching</button></div></div></div>`;
+}
+function discoverView(){
+  if (!disc) return '<div class="empty">Loading what’s new on your services…</div>';
+  if (disc.err) return `<div class="empty">${esc(disc.err)}</div>`;
+  const f = r => !S.shows[r.id];
+  const b = disc.pop.filter(f);
+  return '<h2>Most popular on your services</h2>' + (b.length ? '<div class="mini-grid">' + b.map(miniCard).join('') + '</div>' : '<div class="empty">Nothing else to suggest right now.</div>');
+}
+function watchedEps(s){
+  const i = s.info; if (!i || !i.seasonList) return null;
+  const S0 = s.lastS || 0, E0 = s.lastE || 0;
+  if (!S0 && !E0) { if (s.status === 'watched') { const t = airedTotals(s); return t ? t.total : 0; } return 0; }
+  let n = 0;
+  for (const x of i.seasonList) { if (x.n < S0) n += x.c; else if (x.n === S0) n += Math.min(E0, x.c); }
+  return n;
+}
+const fmtHours = m => { const h = m / 60; return (h < 10 ? h.toFixed(1) : Math.round(h).toLocaleString()) + ' hours'; };
+function funStats(per, eps, hours){
+  const shows = Object.values(S.shows);
+  const tile = (num, label, cls) => `<div class="stat ${cls || ''}"><b>${esc(num)}</b><span>${label}</span></div>`;
+  const grid = t => '<div class="stats">' + t.join('') + '</div>';
+  let h = '';
+  if (per.length) {
+    const f = [];
+    const longest = [...per].sort((a, b) => b.n - a.n)[0];
+    const seas = [...per].sort((a, b) => ((b.s.info && b.s.info.seasons) || 0) - ((a.s.info && a.s.info.seasons) || 0))[0];
+    const g = {};
+    per.forEach(p => ((p.s.info && p.s.info.genres) || []).forEach(x => { g[x] = (g[x] || 0) + p.m; }));
+    const topG = Object.entries(g).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    const dec = {};
+    per.forEach(p => { const y = parseInt(p.s.info && p.s.info.year); if (y) { const k = Math.floor(y / 10) * 10 + 's'; dec[k] = (dec[k] || 0) + 1; } });
+    const topD = Object.entries(dec).sort((a, b) => b[1] - a[1])[0];
+    const oldest = per.filter(p => p.s.info && parseInt(p.s.info.year)).sort((a, b) => a.s.info.year - b.s.info.year)[0];
+    const done = shows.filter(s => s.status === 'watched').length;
+    f.push(tile(longest.name, 'longest show you’ve watched, ' + longest.n + ' episodes', 'txt'));
+    if (seas && seas.s.info && seas.s.info.seasons) f.push(tile(seas.name, 'most seasons, ' + seas.s.info.seasons, 'txt'));
+    if (topG.length) f.push(tile(topG[0][0], 'favorite genre' + (topG.length > 1 ? ', then ' + topG.slice(1).map(x => esc(x[0])).join(' and ') : ''), 'txt'));
+    if (topD) f.push(tile(topD[0], 'favorite decade, ' + topD[1] + (topD[1] === 1 ? ' show' : ' shows') + ' premiered then', 'txt'));
+    if (oldest) f.push(tile(oldest.name, 'your oldest show, from ' + oldest.s.info.year, 'txt'));
+    f.push(tile((eps / per.length).toFixed(1), 'average episodes per show'));
+    f.push(tile(Math.round(100 * done / shows.length) + '%', 'of your tracked shows finished'));
+    h += '<h2>Fun facts</h2>' + grid(f);
+  }
+  if (hours >= 1) h += '<h2>Your time, in perspective</h2>' + grid([
+    tile(Math.round(hours / 2).toLocaleString(), 'feature films back to back, at 2 hours each'),
+    tile((hours / 11.4).toFixed(1), 'extended Lord of the Rings trilogy marathons'),
+    tile((hours / 40).toFixed(1), 'full 40-hour work weeks')]);
+  const mine = mineSet(), act = shows.filter(s => s.status !== 'watched' && s.info);
+  if (act.length) {
+    const c = {}; let none = 0, soon = 0;
+    act.forEach(s => {
+      const m = s.info.providers.filter(p => mine.has(p.id));
+      if (!m.length) none++;
+      m.forEach(p => { c[p.name] = (c[p.name] || 0) + 1; });
+      if (s.info.next && s.info.next.date) { const dd = (new Date(s.info.next.date + 'T12:00:00') - Date.now()) / 864e5; if (dd >= -0.5 && dd <= 7) soon++; }
+    });
+    const topS = Object.entries(c).sort((a, b) => b[1] - a[1])[0];
+    const t = [];
+    if (topS) t.push(tile(topS[0], 'your busiest service, ' + topS[1] + (topS[1] === 1 ? ' show' : ' shows') + ' to watch', 'txt'));
+    t.push(tile(none, 'active shows not on your services'));
+    t.push(tile(soon, 'episodes airing in the next 7 days'));
+    h += '<h2>Services and schedule</h2>' + grid(t);
+  }
+  const log = S.log || [], now = Date.now();
+  const wk = log.filter(x => now - x < 7 * 864e5).length, mo = log.filter(x => now - x < 30 * 864e5).length;
+  const ds = new Set(log.map(x => new Date(x).toDateString()));
+  let streak = 0; const cur = new Date();
+  if (!ds.has(cur.toDateString())) cur.setDate(cur.getDate() - 1);
+  while (ds.has(cur.toDateString())) { streak++; cur.setDate(cur.getDate() - 1); }
+  h += '<h2>Your pace</h2>' + grid([tile(wk, 'episodes in the last 7 days'), tile(mo, 'episodes in the last 30 days'), tile(streak, streak === 1 ? 'day streak' : 'days in a row')]) + '<p class="small muted">Pace stats count each time you tap Watched next episode, starting from now.</p>';
+  return h;
+}
+function profileView(){
+  const shows = Object.values(S.shows);
+  let eps = 0, mins = 0, loading = 0, assumed = 0; const per = [];
+  for (const s of shows) {
+    const n = watchedEps(s);
+    if (n === null) { if (s.status !== 'watchlist') loading++; continue; }
+    if (!n) continue;
+    const rt = (s.info && s.info.runtime) || 0;
+    if (!rt) assumed++;
+    const m = n * (rt || 40);
+    eps += n; mins += m; per.push({name:s.name, n, m, s});
+  }
+  const hours = mins / 60, days = hours / 24;
+  const y = Math.floor(days / 365), mo = Math.floor((days - y * 365) / 30), d = Math.floor(days - y * 365 - mo * 30);
+  const count = st => shows.filter(s => s.status === st).length;
+  const tile = (num, label, cls) => `<div class="stat ${cls || ''}"><b>${num}</b><span>${label}</span></div>`;
+  const top = per.sort((a, b) => b.m - a.m).slice(0, 5);
+  let h = '<h2>Your TV so far</h2><div class="stats">' +
+    tile(eps.toLocaleString(), eps === 1 ? 'episode watched' : 'episodes watched', 'big') +
+    tile(count('watched').toLocaleString(), count('watched') === 1 ? 'show watched' : 'shows watched', 'big') +
+    tile(hours < 10 ? hours.toFixed(1) : Math.round(hours).toLocaleString(), 'hours watched', 'big') + '</div>' +
+    '<h2>That time, broken down</h2><div class="stats">' +
+    tile(y, y === 1 ? 'year' : 'years') + tile(mo, mo === 1 ? 'month' : 'months') + tile(d, d === 1 ? 'day' : 'days') + '</div>' +
+    '<h2>More</h2><div class="stats">' + tile(count('watching'), 'shows you’re watching') + tile(count('watchlist'), 'shows on your watchlist') + '</div>';
+  h += funStats(per, eps, hours);
+  if (top.length) h += '<h2>Most time spent</h2>' + top.map(t => `<div class="upl" style="grid-template-columns:1fr auto"><b>${esc(t.name)}</b><span class="small muted">${t.n} episodes, ${fmtHours(t.m)}</span></div>`).join('');
+  h += '<p class="small muted">Time is an estimate: episodes watched times each show’s typical episode length' + (assumed ? ' (40 minutes assumed for ' + assumed + (assumed === 1 ? ' show' : ' shows') + ' with no length listed)' : '') + '. Years and months use 365 and 30 day approximations.' + (loading ? ' ' + loading + (loading === 1 ? ' show is' : ' shows are') + ' still loading details, so press Refresh to include ' + (loading === 1 ? 'it' : 'them') + '.' : '') + '</p>';
+  return h;
+}
+function onboardView(){
+  return `<div class="empty" style="text-align:left;max-width:560px;margin:30px auto;color:var(--ink)">
+    <h2 style="margin-top:0">Set up in two minutes</h2>
+    <p>This tracker gets show data, air dates, and streaming availability from TMDB, which is free for personal use.</p>
+    <ol><li>Create a free account at themoviedb.org and request an API key under Settings, API.</li>
+    <li>Open Settings here, paste the key, and tick the services you subscribe to.</li>
+    <li>Search for a show and add it.</li></ol>
+    <button class="btn primary" data-act="settings">Open settings</button></div>`;
+}
+function renderTabs(){
+  const n = st => Object.values(S.shows).filter(s => s.status === st).length;
+  $('#tabs').innerHTML = TABS.map(([k,l]) => `<button role="tab" aria-selected="${tab === k}" data-act="tab" data-tab="${k}">${l}${STATUS[k] ? `<span class="n">${n(k)}</span>` : ''}</button>`).join('');
+}
+function render(){
+  renderTabs();
+  const m = $('#main');
+  if (!S.settings.key) { m.innerHTML = onboardView(); return; }
+  m.innerHTML = tab === 'upcoming' ? upcomingView() : tab === 'discover' ? discoverView() : tab === 'profile' ? profileView() : listView(tab);
+  if (det) renderDetail();
+}
+
+/* ---------- actions ---------- */
+async function addShow(id, name, poster, status, auto){
+  S.shows[id] = {id:+id, name, poster:poster || '', status, lastS:0, lastE:0, added:Date.now(), auto:!!auto, info:null, infoAt:0};
+  S.seen[id] = 1; save(); render();
+  await refreshShow(id);
+  const s = S.shows[id];
+  if (s && status === 'watched' && s.info && s.info.last) { s.lastS = s.info.last.s; s.lastE = s.info.last.e; }
+  save(); render();
+}
+function setStatus(id, status){
+  const s = S.shows[id]; if (!s) return;
+  s.status = status; s.auto = false;
+  if (status === 'watched' && s.info && s.info.last) { s.lastS = s.info.last.s; s.lastE = s.info.last.e; }
+  save(); render();
+}
+async function autoAdd(){
+  if (!S.settings.autoAdd || !S.settings.key || !S.settings.providers.length) return;
+  if (Date.now() - (S.lastAuto || 0) < 12 * 3600e3) return;
+  if (!disc || !disc.fresh) await loadDiscover();
+  if (!disc || !disc.fresh) return;
+  const fresh = disc.fresh.filter(r => !S.shows[r.id] && !S.seen[r.id]).slice(0,10);
+  for (const r of fresh) await addShow(r.id, r.name, r.poster_path, 'watchlist', true);
+  S.lastAuto = Date.now(); save();
+  if (fresh.length) toast(fresh.length + ' new show' + (fresh.length > 1 ? 's' : '') + ' added to Watchlist');
+}
+
+/* ---------- search ---------- */
+let qTimer;
+$('#q').addEventListener('input', e => {
+  clearTimeout(qTimer);
+  const v = e.target.value.trim(), box = $('#results');
+  if (!v || !S.settings.key) { box.hidden = true; return; }
+  qTimer = setTimeout(async () => {
+    try {
+      const r = await api('/search/tv', {query:v, include_adult:'false'});
+      const items = r.results.slice(0,8);
+      box.innerHTML = items.length ? items.map(x => `<div class="res">
+        ${x.poster_path ? `<img src="${IMG}w92${x.poster_path}" alt="">` : '<img alt="">'}
+        <div class="t"><b class="link" data-act="open" data-id="${x.id}" tabindex="0" role="button">${esc(x.name)}</b><div class="small muted">${esc((x.first_air_date || '').slice(0,4))}</div></div>
+        ${S.shows[x.id] ? `<span class="small muted">In: ${STATUS[S.shows[x.id].status]}</span>` :
+          Object.entries(STATUS).map(([k,l]) => `<button class="btn small" data-act="add" data-status="${k}" data-id="${x.id}" data-name="${esc(x.name)}" data-poster="${esc(x.poster_path || '')}">${l}</button>`).join('')}
+      </div>`).join('') : '<div class="res muted">No shows found.</div>';
+      box.hidden = false;
+    } catch(err){ toast(err.message); }
+  }, 300);
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { $('#results').hidden = true; if (det) closeDetail(); }
+  if (e.key === 'Enter' && e.target.matches && e.target.matches('[data-act=open]')) { $('#results').hidden = true; openDetail(e.target.dataset.id); }
+});
+
+/* ---------- events ---------- */
+document.addEventListener('click', async e => {
+  const t = e.target.closest('[data-act]');
+  if (!t) { if (!e.target.closest('.searchbox')) $('#results').hidden = true; return; }
+  const id = t.dataset.id, act = t.dataset.act;
+  if (act === 'tab') { tab = t.dataset.tab; render(); if (tab === 'discover' && !disc) { await loadDiscover(); render(); } }
+  else if (act === 'add') {
+    await addShow(id, t.dataset.name, t.dataset.poster, t.dataset.status);
+    $('#results').hidden = true; $('#q').value = '';
+    toast('Added ' + t.dataset.name);
+  }
+  else if (act === 'remove') { if (confirm('Remove ' + S.shows[id].name + '?')) { delete S.shows[id]; save(); render(); } }
+  else if (act === 'stepnext') { const s = S.shows[id], n = nextEp(s); if (n) { S.log = (S.log || []).concat(Date.now()).slice(-5000); setProg(s, n); } }
+  else if (act === 'stepback') { const s = S.shows[id]; if (S.log && S.log.length && Date.now() - S.log[S.log.length - 1] < 120000) S.log.pop(); setProg(s, prevEp(s)); }
+  else if (act === 'editprog') { editing.has(+id) ? editing.delete(+id) : editing.add(+id); render(); }
+  else if (act === 'caught') { const s = S.shows[id]; s.lastS = s.info.last.s; s.lastE = s.info.last.e; save(); render(); }
+  else if (act === 'settings') openSettings();
+  else if (act === 'open') { $('#results').hidden = true; openDetail(id); }
+  else if (act === 'dclose') closeDetail();
+  else if (act === 'dtab') { det.tab = t.dataset.tab; renderDetail(); }
+  else if (act === 'dseason') { det.season = +t.dataset.n; renderDetail(); }
+  else if (act === 'dexp') { const eid = +t.dataset.eid; det.open.has(eid) ? det.open.delete(eid) : det.open.add(eid); renderDetail(); }
+  else if (act === 'depi') toggleEp(+t.dataset.s, +t.dataset.e);
+  else if (act === 'dseasonall') seasonAll();
+  else if (act === 'dmore') { const s = S.shows[det.id]; if (s && confirm('Remove ' + s.name + ' from your shows?')) { delete S.shows[det.id]; save(); render(); } }
+});
+document.addEventListener('change', e => {
+  const t = e.target.closest('[data-act]'); if (!t) return;
+  if (t.dataset.act === 'status') setStatus(t.dataset.id, t.value);
+  if (t.dataset.act === 'dstatus') setStatus(det.id, t.value);
+  if (t.dataset.act === 'dadd' && t.value && det.d) addShow(det.id, det.d.name, det.d.poster_path, t.value);
+  if (t.dataset.act === 'selS') { const s = S.shows[t.dataset.id]; setProg(s, {s:parseInt(t.value) || 0, e:0}); }
+  if (t.dataset.act === 'selE') { const s = S.shows[t.dataset.id]; setProg(s, {s:s.lastS || 0, e:parseInt(t.value) || 0}); }
+  if (t.dataset.act === 'prog') { S.shows[t.dataset.id][t.dataset.k] = Math.max(0, parseInt(t.value) || 0); save(); render(); }
+});
+$('#refreshBtn').onclick = async () => { toast('Checking for updates…'); await refreshAll(true); disc = null; render(); toast('Up to date'); };
+$('#settingsBtn').onclick = openSettings;
+
+/* ---------- settings ---------- */
+const defaultMatch = name => {
+  const n = name.toLowerCase();
+  if (n.includes('channel')) return false;
+  return n === 'max' || ['netflix','hulu','disney plus','disney+','amazon prime video','paramount plus','paramount+','peacock','apple tv','hbo max'].some(k => n === k || n.startsWith(k + ' '));
+};
+let draft = null;
+function drawProviders(){
+  const f = $('#pfilter').value.toLowerCase();
+  const list = (draft.list || []).filter(p => p.provider_name.toLowerCase().includes(f));
+  $('#plist').innerHTML = list.length ? list.map(p => `<label><input type="checkbox" value="${p.provider_id}" ${draft.sel.has(p.provider_id) ? 'checked' : ''}>${esc(p.provider_name)}</label>`).join('') : '<span class="muted small">No services to show.</span>';
+}
+async function loadProviderList(){
+  const key = $('#key').value.trim(), region = ($('#region').value.trim() || 'US').toUpperCase();
+  if (!key) return;
+  $('#plist').innerHTML = '<span class="muted small">Loading services…</span>';
+  const prev = S.settings.key; S.settings.key = key;
+  try {
+    const r = await api('/watch/providers/tv', {watch_region: region});
+    draft.list = r.results.sort((a,b) => a.provider_name.localeCompare(b.provider_name));
+    if (!S.settings.providersSet && !draft.touched) draft.sel = new Set(draft.list.filter(p => defaultMatch(p.provider_name)).map(p => p.provider_id));
+    drawProviders();
+  } catch(e){
+    const msg = e.message === 'Failed to fetch' ? 'Couldn’t reach TMDB. Check your internet connection and that the key is complete, with no extra characters.' : e.message;
+    $('#plist').innerHTML = `<span class="small" style="color:var(--new)">${esc(msg)}</span>`;
+  }
+  S.settings.key = prev;
+}
+function openSettings(){
+  draft = {list:null, sel:new Set(S.settings.providers), touched:false};
+  $('#key').value = S.settings.key; $('#gtoken').value = (S.sync && S.sync.token) || ''; setSyncStatus(); $('#region').value = S.settings.region; $('#auto').checked = S.settings.autoAdd; $('#pfilter').value = '';
+  $('#dlg').showModal();
+  loadProviderList();
+}
+let keyTimer;
+$('#key').addEventListener('input', () => { clearTimeout(keyTimer); keyTimer = setTimeout(loadProviderList, 600); });
+$('#key').addEventListener('change', loadProviderList);
+$('#region').addEventListener('change', () => { draft.touched = false; loadProviderList(); });
+$('#pfilter').addEventListener('input', drawProviders);
+$('#plist').addEventListener('change', e => {
+  draft.touched = true;
+  const id = +e.target.value; e.target.checked ? draft.sel.add(id) : draft.sel.delete(id);
+});
+$('#cancelBtn').onclick = () => $('#dlg').close();
+$('#saveBtn').onclick = async () => {
+  const old = JSON.stringify([S.settings.region, [...S.settings.providers].sort()]);
+  S.settings.key = $('#key').value.trim();
+  S.settings.region = ($('#region').value.trim() || 'US').toUpperCase();
+  S.settings.providers = [...draft.sel];
+  S.settings.providersSet = true;
+  S.settings.autoAdd = $('#auto').checked;
+  applyToken();
+  save(); $('#dlg').close();
+  const changed = old !== JSON.stringify([S.settings.region, [...S.settings.providers].sort()]);
+  if (changed) { disc = null; S.lastAuto = 0; Object.values(S.shows).forEach(s => s.infoAt = 0); }
+  render(); await refreshAll(); await autoAdd(); render();
+};
+$('#exportBtn').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(S, (k, v) => (k === 'key' || k === 'sync' || k === 'info') ? undefined : v, 2)], {type:'application/json'}));
+  a.download = 'my-shows-backup.json'; a.click();
+};
+$('#importBtn').onclick = () => $('#importFile').click();
+$('#importFile').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const d = JSON.parse(await f.text());
+    if (!d.settings || !d.shows) throw new Error();
+    if (confirm('Replace everything in this browser with the backup?')) { d.settings.key = S.settings.key; d.sync = S.sync; S = d; save(); $('#dlg').close(); disc = null; render(); refreshAll(); }
+  } catch(err){ toast('That file isn’t a My Shows backup.'); }
+  e.target.value = '';
+};
+
+/* ---------- show detail ---------- */
+let det = null; // {id, d, tab, season, open:Set, err, pushed}
+const seasonCache = {};
+const todayStr = () => new Date().toLocaleDateString('en-CA');
+const fmtLong = d => new Date(d + 'T12:00:00').toLocaleDateString(undefined, {day:'numeric', month:'short', year:'numeric'});
+function isWatchedEp(s, sn, en){
+  const S0 = s.lastS || 0, E0 = s.lastE || 0;
+  if (!S0 && !E0) return false;
+  return cmp({s:sn, e:en}, {s:S0, e:E0}) <= 0;
+}
+function prevOfEp(s, sn, en){
+  if (en > 1) return {s:sn, e:en - 1};
+  const p = seasonList(s).filter(x => x.n < sn).pop();
+  return p ? {s:p.n, e:p.c} : {s:0, e:0};
+}
+function epData(sn, en){
+  const c = seasonCache[det.id + '-' + sn];
+  return c && c.eps ? c.eps.find(x => x.episode_number === en) : null;
+}
+async function loadSeason(sn){
+  const id = det.id, k = id + '-' + sn;
+  if (seasonCache[k]) return;
+  seasonCache[k] = {loading:true};
+  try { const r = await api('/tv/' + id + '/season/' + sn); seasonCache[k] = {eps:r.episodes || []}; }
+  catch(e){ delete seasonCache[k]; toast(e.message); return; }
+  if (det && det.id === id) renderDetail();
+}
+function ensureSeasons(){
+  const s = S.shows[det.id], nx = s ? nextEp(s) : null;
+  if (det.season) loadSeason(det.season);
+  if (nx && nx.s !== det.season) loadSeason(nx.s);
+}
+async function openDetail(id, fromHash){
+  id = +id;
+  det = {id, d:null, tab:'details', season:null, open:new Set(), err:null, pushed:!fromHash};
+  const el = $('#detail');
+  el.hidden = false; el.scrollTop = 0; document.body.style.overflow = 'hidden';
+  if (!fromHash) location.hash = 'show-' + id;
+  renderDetail();
+  try {
+    const d = await api('/tv/' + id, {append_to_response:'watch/providers,credits'});
+    if (!det || det.id !== id) return;
+    det.d = d;
+    const s = S.shows[id];
+    if (s) { s.info = toInfo(d); s.infoAt = Date.now(); if (d.poster_path) s.poster = d.poster_path; save(false); }
+    const list = (d.seasons || []).filter(x => x.season_number > 0);
+    const nx = s ? nextEp(s) : null;
+    det.season = nx ? nx.s : (s && (s.lastS || 0) > 0 ? s.lastS : (list.length ? list[0].season_number : 1));
+    renderDetail();
+  } catch(e){ if (det && det.id === id) { det.err = e.message; renderDetail(); } }
+}
+function closeDetail(fromHash){
+  const pushed = det && det.pushed;
+  det = null;
+  $('#detail').hidden = true; document.body.style.overflow = '';
+  if (!fromHash) {
+    if (pushed) history.back();
+    else if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+  }
+  render();
+}
+function toggleEp(sn, en){
+  const s = S.shows[det.id]; if (!s) return;
+  if (isWatchedEp(s, sn, en)) { setProg(s, prevOfEp(s, sn, en)); return; }
+  S.log = (S.log || []).concat(Date.now()).slice(-5000);
+  if (s.status === 'watchlist') s.status = 'watching';
+  setProg(s, {s:sn, e:en});
+}
+function seasonAll(){
+  const s = S.shows[det.id], sc = seasonCache[det.id + '-' + det.season];
+  if (!s || !sc || !sc.eps) return;
+  const aired = sc.eps.filter(e => e.air_date && e.air_date <= todayStr());
+  if (!aired.length) return;
+  const last = aired[aired.length - 1].episode_number;
+  if (isWatchedEp(s, det.season, last)) { setProg(s, prevOfEp(s, det.season, 1)); return; }
+  S.log = (S.log || []).concat(Date.now()).slice(-5000);
+  if (s.status === 'watchlist') s.status = 'watching';
+  setProg(s, {s:det.season, e:last});
+}
+function detailsTab(d, info){
+  const fact = (l, v) => v ? `<div class="fact"><span>${l}</span><b>${esc(v)}</b></div>` : '';
+  const le = d.last_episode_to_air, ne = d.next_episode_to_air;
+  let h = d.overview ? `<p class="ov">${esc(d.overview)}</p>` : '<p class="muted">No description available.</p>';
+  if ((d.genres || []).length) h += '<div class="chips">' + d.genres.map(g => `<span class="chip">${esc(g.name)}</span>`).join('') + '</div>';
+  h += '<div class="facts">' +
+    fact('Created by', (d.created_by || []).map(x => x.name).join(', ')) +
+    fact('Network', (d.networks || []).map(x => x.name).join(', ')) +
+    fact('First aired', d.first_air_date ? fmtLong(d.first_air_date) : '') +
+    fact('Latest episode', le ? ep(le.season_number, le.episode_number) + (le.air_date ? ', ' + fmtLong(le.air_date) : '') : '') +
+    fact('Next episode', ne ? ep(ne.season_number, ne.episode_number) + (ne.air_date ? ', ' + fmtLong(ne.air_date) : '') : '') +
+    fact('Status', d.status) +
+    fact('Episodes', d.number_of_episodes ? d.number_of_episodes + ' across ' + d.number_of_seasons + (d.number_of_seasons === 1 ? ' season' : ' seasons') : '') +
+    fact('Typical length', info.runtime ? info.runtime + ' min' : '') +
+    fact('Rating', d.vote_average ? d.vote_average.toFixed(1) + ' / 10 (' + (d.vote_count || 0).toLocaleString() + ' votes)' : '') + '</div>';
+  const cast = ((d.credits && d.credits.cast) || []).slice(0, 14);
+  if (cast.length) h += '<h3 class="dh">Cast</h3><div class="cast">' + cast.map(c => `<div class="cm">${c.profile_path ? `<img loading="lazy" src="${IMG}w185${c.profile_path}" alt="">` : '<div class="ph"></div>'}<b>${esc(c.name)}</b><span>${esc(c.character || '')}</span></div>`).join('') + '</div>';
+  h += '<p class="small muted" style="margin-top:24px">Show data and images from TMDB. Streaming availability from JustWatch.</p>';
+  return h;
+}
+function epRow(e, s, today){
+  const w = s && isWatchedEp(s, e.season_number, e.episode_number);
+  const aired = e.air_date && e.air_date <= today;
+  const when = aired ? fmtLong(e.air_date) : (e.air_date ? 'Airs ' + fmtLong(e.air_date) : 'Date unknown');
+  return `<div class="ep ${aired ? '' : 'future'}">
+    <div class="ep-main" data-act="dexp" data-eid="${e.id}">
+      ${e.still_path ? `<img class="ep-still" loading="lazy" src="${IMG}w300${e.still_path}" alt="">` : '<div class="ep-still"></div>'}
+      <div class="ep-t"><b>${e.episode_number}. ${esc(e.name)}</b><div class="small muted">${when}${e.runtime ? ', ' + e.runtime + ' min' : ''}${e.vote_average ? ', \u2605 ' + (e.vote_average / 2).toFixed(1) : ''}</div></div>
+    </div>
+    <button class="check ${w ? 'on' : ''}" data-act="depi" data-s="${e.season_number}" data-e="${e.episode_number}" ${s && aired ? '' : 'disabled'} aria-label="${w ? 'Mark unwatched' : 'Mark watched'}">${w ? '\u2713' : ''}</button>
+    ${det.open.has(e.id) ? `<p class="ep-ov small">${esc(e.overview || 'No description available.')}</p>` : ''}
+  </div>`;
+}
+function episodesTab(d, s){
+  ensureSeasons();
+  const seasons = (d.seasons || []).filter(x => x.season_number > 0);
+  const nx = s ? nextEp(s) : null;
+  let h = '';
+  if (nx) {
+    const ne = epData(nx.s, nx.e);
+    h += `<div class="wn-head"><b>Watch Next</b><span class="muted">Season ${nx.s}</span></div><div class="wn">${ne && ne.still_path ? `<div class="still" style="background-image:url(${IMG}w300${ne.still_path})"></div>` : ''}<div class="wn-in"><b>${ep(nx.s, nx.e)}${ne ? ', ' + esc(ne.name) : ''}</b>${ne && ne.air_date ? `<span class="small muted">${fmtLong(ne.air_date)}${ne.runtime ? ', ' + ne.runtime + ' min' : ''}</span>` : ''}<div><button class="btn small primary" data-act="depi" data-s="${nx.s}" data-e="${nx.e}">Mark watched</button></div></div></div>`;
+  }
+  h += '<div class="chips">' + seasons.map(x => `<button class="chip" aria-pressed="${x.season_number === det.season}" data-act="dseason" data-n="${x.season_number}">Season ${x.season_number}</button>`).join('') + '</div>';
+  if (!s) h += '<p class="small muted">Add this show to your list to track episodes.</p>';
+  const sc = seasonCache[det.id + '-' + det.season];
+  if (!sc || sc.loading) return h + '<p class="muted">Loading episodes\u2026</p>';
+  const eps = sc.eps, today = todayStr();
+  const aired = eps.filter(e => e.air_date && e.air_date <= today);
+  const done = s ? eps.filter(e => isWatchedEp(s, e.season_number, e.episode_number)).length : 0;
+  const allDone = s && aired.length && isWatchedEp(s, det.season, aired[aired.length - 1].episode_number);
+  if (s) h += `<div class="sbar"><span class="small muted">${done} of ${eps.length} watched</span>${aired.length ? `<button class="btn small push" data-act="dseasonall">${allDone ? 'Unmark season' : 'Mark season watched'}</button>` : ''}</div>`;
+  h += eps.map(e => epRow(e, s, today)).join('') || '<p class="muted">No episodes listed.</p>';
+  return h;
+}
+function renderDetail(){
+  if (!det) return;
+  const el = $('#dinner');
+  const back = '<button class="dback" data-act="dclose" aria-label="Back">\u2039</button>';
+  const d = det.d;
+  if (!d) { el.innerHTML = `<div class="hero">${back}<div class="dwrap hero-in"><div class="dtitle">${det.err ? esc(det.err) : 'Loading\u2026'}</div></div></div>`; return; }
+  const s = S.shows[det.id], info = toInfo(d);
+  const bg = d.backdrop_path ? IMG + 'w780' + d.backdrop_path : (d.poster_path ? IMG + 'w500' + d.poster_path : '');
+  const genres = (d.genres || []).map(g => g.name);
+  const line1 = [d.first_air_date ? fmtLong(d.first_air_date) : '', ...genres.slice(0, 2), d.number_of_seasons ? d.number_of_seasons + (d.number_of_seasons === 1 ? ' season' : ' seasons') : ''].filter(Boolean).map(esc).join(' \u00b7 ');
+  const line2 = [d.status === 'Returning Series' ? 'Returning' : d.status, d.vote_average ? '\u2605 ' + (d.vote_average / 2).toFixed(1) : ''].filter(Boolean).map(esc).join('  \u00b7  ');
+  const opts = Object.entries(STATUS).map(([k, v]) => `<option value="${k}" ${s && s.status === k ? 'selected' : ''}>${v}</option>`).join('');
+  const pill = s
+    ? `<label class="pillwrap"><i class="dot"></i><select class="pill" data-act="dstatus" aria-label="Status">${opts}</select><span aria-hidden="true">\u25be</span></label><button class="roundbtn" data-act="dmore" aria-label="Remove from my shows">\u22ef</button>`
+    : `<label class="pillwrap"><select class="pill" data-act="dadd" aria-label="Add this show"><option value="" selected>+ Add to my shows</option>${opts}</select><span aria-hidden="true">\u25be</span></label>`;
+  const body = det.tab === 'episodes' ? episodesTab(d, s) : detailsTab(d, info);
+  el.innerHTML = `<div class="hero" style="${bg ? 'background-image:url(' + bg + ')' : ''}">${back}<div class="dwrap hero-in"><h1 class="dtitle">${esc(d.name)}</h1><div class="dmeta">${line1}</div><div class="dmeta">${line2}</div><div class="pillrow">${pill}</div></div></div>
+    <div class="dwrap dbody"><div class="prov">${whereHtml({info})}<div class="attr">PROVIDED BY<b>JustWatch</b></div></div>
+    <div class="seg" role="tablist"><button role="tab" aria-selected="${det.tab === 'details'}" data-act="dtab" data-tab="details">Details</button><button role="tab" aria-selected="${det.tab === 'episodes'}" data-act="dtab" data-tab="episodes">Episodes</button></div>
+    ${body}</div>`;
+}
+window.addEventListener('hashchange', () => {
+  const h = location.hash;
+  if (h.startsWith('#show-')) { const id = parseInt(h.slice(6)); if (id && (!det || det.id !== id)) openDetail(id, true); }
+  else if (det) closeDetail(true);
+});
+if (location.hash.startsWith('#show-') && S.settings.key) setTimeout(() => openDetail(parseInt(location.hash.slice(6)), true), 0);
+
+/* ---------- sync (private GitHub gist) ---------- */
+const GF = 'rewind-room.json', GD = 'Rewind Room data';
+let syncing = false, syncTimer;
+function payload(){
+  const shows = {};
+  for (const [id, s] of Object.entries(S.shows)) shows[id] = {id:s.id, name:s.name, poster:s.poster, status:s.status, lastS:s.lastS || 0, lastE:s.lastE || 0, added:s.added, auto:!!s.auto};
+  return {v:1, modified:S.modified || 0, shows, seen:S.seen || {}, log:S.log || [], region:S.settings.region, providers:S.settings.providers, providersSet:S.settings.providersSet, autoAdd:S.settings.autoAdd};
+}
+function applyRemote(r){
+  const old = {};
+  for (const [id, s] of Object.entries(S.shows)) if (s.info) old[id] = s;
+  const regionChanged = r.region && r.region !== S.settings.region;
+  S.shows = {};
+  for (const [id, s] of Object.entries(r.shows || {})) {
+    const o = old[id];
+    S.shows[id] = {...s, info: o && !regionChanged ? o.info : null, infoAt: o && !regionChanged ? o.infoAt : 0};
+  }
+  S.seen = r.seen || {}; S.log = r.log || [];
+  if (r.region) S.settings.region = r.region;
+  if (r.providers) S.settings.providers = r.providers;
+  S.settings.providersSet = !!r.providersSet; S.settings.autoAdd = !!r.autoAdd;
+  S.modified = r.modified || 0;
+  save(false); disc = null; render();
+  if (S.settings.key) refreshAll();
+}
+function scheduleSync(){
+  if (!(S.sync && S.sync.token)) return;
+  clearTimeout(syncTimer); syncTimer = setTimeout(() => syncNow(), 2500);
+}
+async function gh(path, opts = {}){
+  const r = await fetch('https://api.github.com' + path, {...opts, headers:{Authorization:'Bearer ' + S.sync.token, Accept:'application/vnd.github+json', 'Content-Type':'application/json'}});
+  if (!r.ok) throw new Error(r.status === 401 ? 'GitHub rejected the token. Make a new one and paste it in Settings.' : (r.status === 403 || r.status === 404) ? 'GitHub denied access. Check that the token has the gist permission.' : 'GitHub error ' + r.status);
+  return r.json();
+}
+function setSyncStatus(msg){
+  const el = $('#syncStatus'); if (!el) return;
+  const y = S.sync || {};
+  el.textContent = msg || (!y.token ? 'Not connected. Your list is only stored in this browser.' : y.error ? 'Problem: ' + y.error : y.at ? 'Connected. Last synced ' + new Date(y.at).toLocaleTimeString() + '.' : 'Connected. Not synced yet.');
+}
+async function syncNow(manual){
+  if (syncing || !(S.sync && S.sync.token)) return;
+  syncing = true; setSyncStatus('Syncing…');
+  try {
+    if (!S.sync.gistId) {
+      const list = await gh('/gists?per_page=100');
+      const found = list.find(x => x.description === GD && x.files && x.files[GF]);
+      if (found) S.sync.gistId = found.id;
+      else {
+        const c = await gh('/gists', {method:'POST', body:JSON.stringify({description:GD, public:false, files:{[GF]:{content:JSON.stringify(payload())}}})});
+        S.sync.gistId = c.id; S.sync.linked = true; S.sync.at = Date.now(); S.sync.error = '';
+        save(false); if (manual) toast('Sync is on');
+        return;
+      }
+    }
+    const g = await gh('/gists/' + S.sync.gistId);
+    const f = g.files && g.files[GF];
+    let r = null; try { r = JSON.parse(f.content); } catch(e){}
+    const lm = S.modified || 0, rm = r ? (r.modified || 0) : -1;
+    const first = !S.sync.linked, rs = r ? Object.keys(r.shows || {}).length : 0;
+    let pull;
+    if (first) pull = rs > 0 && (Object.keys(S.shows).length === 0 || confirm('Found a synced list with ' + rs + ' shows. Press OK to replace this device’s list with it, or Cancel to keep this device’s list and overwrite the synced one.'));
+    else pull = !!r && rm > lm;
+    S.sync.linked = true;
+    if (pull) applyRemote(r);
+    else if (first || !r || lm > rm) await gh('/gists/' + S.sync.gistId, {method:'PATCH', body:JSON.stringify({files:{[GF]:{content:JSON.stringify(payload())}}})});
+    S.sync.at = Date.now(); S.sync.error = ''; save(false);
+    if (manual) toast('Synced');
+  } catch(e){
+    S.sync.error = e.message === 'Failed to fetch' ? 'Couldn’t reach GitHub.' : e.message;
+    save(false);
+    if (manual) toast(S.sync.error);
+  } finally { syncing = false; setSyncStatus(); }
+}
+function applyToken(){
+  const tk = $('#gtoken').value.trim();
+  if (tk !== ((S.sync && S.sync.token) || '')) S.sync = tk ? {token:tk, gistId:null, linked:false} : {};
+}
+$('#syncNowBtn').onclick = () => { applyToken(); save(false); syncNow(true); };
+$('#syncOffBtn').onclick = () => { S.sync = {}; $('#gtoken').value = ''; save(false); setSyncStatus(); toast('Sync turned off on this device'); };
+document.addEventListener('visibilitychange', () => { if (!document.hidden) syncNow(); });
+
+/* ---------- start ---------- */
+(async function init(){
+  render();
+  await syncNow();
+  if (!S.settings.key) return;
+  await refreshAll(); render();
+  await autoAdd(); render();
+})();
+</script>
+</body>
+</html>
