@@ -177,6 +177,7 @@ nav .n{font-weight:400;opacity:.8}
 .seg button{color:#e0cdb8}
 .seg button[aria-selected=true]{background:#6b4f52;color:#fff}
 .attr b{color:#ffb454}
+.mini select{width:100%;padding:6px 8px;border-radius:999px}
 </style>
 </head>
 <body>
@@ -410,10 +411,17 @@ function showCard(s){
       </div>
     </div></article>`;
 }
+function watchedCard(s){
+  const opts = Object.entries(STATUS).map(([k, v]) => `<option value="${k}" ${s.status === k ? 'selected' : ''}>${v}</option>`).join('');
+  return `<div class="mini">${s.poster ? `<img class="link" data-act="open" data-id="${s.id}" loading="lazy" src="${IMG}w342${s.poster}" alt="">` : '<img alt="">'}
+    <div class="in"><b class="link" data-act="open" data-id="${s.id}" tabindex="0" role="button">${esc(s.name)}</b>
+    <div class="row"><select data-act="status" data-id="${s.id}" aria-label="Status">${opts}</select></div></div></div>`;
+}
 function listView(status){
   const list = Object.values(S.shows).filter(s => s.status === status)
-    .sort((a,b) => (hasNew(b) - hasNew(a)) || a.name.localeCompare(b.name));
+    .sort((a,b) => (status === 'watched' ? 0 : hasNew(b) - hasNew(a)) || a.name.localeCompare(b.name));
   if (!list.length) return `<div class="empty">Nothing on the shelf yet. Search above to add a show.</div>`;
+  if (status === 'watched') return '<div class="mini-grid">' + list.map(watchedCard).join('') + '</div>';
   return '<div class="grid">' + list.map(showCard).join('') + '</div>';
 }
 function upcomingView(){
