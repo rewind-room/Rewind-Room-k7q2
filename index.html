@@ -183,6 +183,7 @@ nav .n{font-weight:400;opacity:.8}
 .tools{display:flex;gap:6px;flex:none;padding-bottom:12px}
 .iconbtn{width:36px;height:36px;border-radius:50%;border:2px solid var(--line);background:var(--panel);color:var(--muted);display:grid;place-items:center;cursor:pointer;padding:0}
 .iconbtn:hover{border-color:var(--accent);color:var(--accent)}
+header .tools{padding-bottom:0}
 @media(prefers-reduced-motion:no-preference){@keyframes spin{to{transform:rotate(360deg)}}.iconbtn.busy svg{animation:spin 1s linear infinite}}
 </style>
 </head>
@@ -998,6 +999,16 @@ function applyToken(){
 $('#syncNowBtn').onclick = () => { applyToken(); save(false); syncNow(true); };
 $('#syncOffBtn').onclick = () => { S.sync = {}; $('#gtoken').value = ''; save(false); setSyncStatus(); toast('Sync turned off on this device'); };
 document.addEventListener('visibilitychange', () => { if (!document.hidden) syncNow(); });
+
+/* On phones the Refresh and Settings icons sit beside the title; on larger screens they sit in the tab row */
+const toolsMQ = window.matchMedia('(max-width:640px)');
+function placeTools(){
+  const tools = document.querySelector('.tools'), header = document.querySelector('header'), bar = document.querySelector('.navbar');
+  if (toolsMQ.matches) header.insertBefore(tools, header.querySelector('.searchbox'));
+  else bar.appendChild(tools);
+}
+placeTools();
+toolsMQ.addEventListener('change', placeTools);
 
 /* ---------- start ---------- */
 (async function init(){
