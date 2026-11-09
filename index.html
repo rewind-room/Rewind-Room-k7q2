@@ -214,9 +214,15 @@ header .tools{padding-bottom:0}
   .card .where:not(:has(.mine)){display:none}
   .card .where:has(.mine)+.wtxt{display:none}
 }
+
+.offline{background:var(--accent);color:var(--accent-ink);text-align:center;padding:7px 14px;font:700 12px/1.3 var(--mono)}
+.offline[hidden]{display:none}
+.finish{display:flex;flex-direction:column;gap:8px;background:var(--new-bg);border:2px dashed var(--accent);border-radius:12px;padding:10px 12px;font-size:14px}
+.detail .finish{margin:0 0 16px}
 </style>
 </head>
 <body>
+<div id="offline" class="offline" role="status" hidden>You’re offline. Showing your saved list. Changes sync when you’re back online.</div>
 <header>
   <h1>Rewind Room<small>what are we watching tonight?</small></h1>
   <div class="searchbox">
@@ -237,7 +243,7 @@ header .tools{padding-bottom:0}
 
 <dialog id="dlg">
   <h3>Settings</h3>
-  <p class="small muted" style="margin:-6px 0 0">Version: Nov 8, build 3 (compact cards, bottom tabs)</p>
+  <p class="small muted" style="margin:-6px 0 0">Version: Nov 9, build 4 (offline mode, finished-show prompt)</p>
   <label class="f" for="key">TMDB API key or read access token</label>
   <input id="key" type="password" autocomplete="off" placeholder="Paste your key here">
   <p class="small muted">Free from themoviedb.org: create an account, then Settings, API. The key stays in this browser and is only sent to TMDB.</p>
@@ -286,13 +292,17 @@ function save(touch = true){
 }
 
 /* ---------- TMDB ---------- */
+const NET_ERR = 'Couldn’t reach TMDB. Check your connection.';
+let lastSoftToast = 0;
+function softToast(msg){ if (Date.now() - lastSoftToast > 8000) { lastSoftToast = Date.now(); toast(msg); } }
 async function api(path, params = {}){
   const k = S.settings.key.trim();
   const u = new URL('https://api.themoviedb.org/3' + path);
   const headers = {};
   if (k.length > 40) headers.Authorization = 'Bearer ' + k; else u.searchParams.set('api_key', k);
   for (const [a,b] of Object.entries(params)) u.searchParams.set(a, b);
-  const r = await fetch(u.toString(), {headers});
+  let r;
+  try { r = await fetch(u.toString(), {headers}); } catch(e) { throw new Error(NET_ERR); }
   if (!r.ok) throw new Error(r.status === 401 ? 'TMDB rejected the key. Check it in Settings.' : 'TMDB error ' + r.status);
   return r.json();
 }
@@ -319,9 +329,10 @@ async function refreshShow(id){
     const d = await api('/tv/' + id, {append_to_response:'watch/providers'});
     s.info = toInfo(d); s.infoAt = Date.now(); s.name = d.name; if (d.poster_path) s.poster = d.poster_path;
     save(false);
-  } catch(e){ toast(e.message); }
+  } catch(e){ if (e.message !== NET_ERR) softToast(e.message); }
 }
 async function refreshAll(force){
+  if (!navigator.onLine) return;
   const ids = Object.keys(S.shows).filter(id => {
     const s = S.shows[id];
     if (force) return true;
@@ -453,6 +464,11 @@ function progressHtml(s, isNew){
     </div>
   </div>`;
 }
+function finishedCheck(s){
+  return s.status === 'watching' && !s.dismissed && !!s.info && ['Ended', 'Canceled'].includes(s.info.tmdbStatus) &&
+    !!s.info.last && !s.info.next && ((s.lastS || 0) > 0 || (s.lastE || 0) > 0) && !hasNew(s);
+}
+const finishBanner = s => `<div class="finish"><span>You\u2019re all caught up, and this show ${s.info.tmdbStatus === 'Canceled' ? 'was canceled' : 'has ended'}. Move it to Watched?</span><div class="row"><button class="btn small primary" data-act="finish" data-id="${s.id}">Move to Watched</button><button class="btn small" data-act="notyet" data-id="${s.id}">Not yet</button></div></div>`;
 function showCard(s){
   const i = s.info, isNew = hasNew(s), open = moreOpen.has(s.id);
   const progress = s.status === 'watchlist' ? '' : progressHtml(s, isNew);
@@ -465,6 +481,7 @@ function showCard(s){
       <div class="small muted meta">${i ? esc([i.year, i.seasons ? i.seasons + (i.seasons === 1 ? ' season' : ' seasons') : ''].filter(Boolean).join(', ')) : ''}</div>
       ${whereHtml(s)}
       ${epLine(s)}
+      ${finishedCheck(s) ? finishBanner(s) : ''}
       ${progress}${moreRow}
       <div class="xtra">
         <div class="row">
@@ -521,7 +538,7 @@ async function loadDiscover(){
       api('/discover/tv', {...base, page:'2'})
     ]);
     disc = {fresh: fresh.results.slice(0,18), pop: pop1.results.concat(pop2.results).slice(0,40)};
-  } catch(e){ disc = {err:e.message}; }
+  } catch(e){ disc = {err: e.message === NET_ERR ? 'You’re offline. Channel Surfing needs a connection.' : e.message}; }
 }
 function miniCard(r){
   return `<div class="mini">${r.poster_path ? `<img class="link" data-act="open" data-id="${r.id}" loading="lazy" src="${IMG}w342${r.poster_path}" alt="">` : '<img alt="">'}
@@ -674,6 +691,7 @@ function setStatus(id, status){
   save(); render();
 }
 async function autoAdd(){
+  if (!navigator.onLine) return;
   if (!S.settings.autoAdd || !S.settings.key || !S.settings.providers.length) return;
   if (Date.now() - (S.lastAuto || 0) < 12 * 3600e3) return;
   if (!disc || !disc.fresh) await loadDiscover();
@@ -714,7 +732,7 @@ document.addEventListener('click', async e => {
   const t = e.target.closest('[data-act]');
   if (!t) { if (!e.target.closest('.searchbox')) $('#results').hidden = true; return; }
   const id = t.dataset.id, act = t.dataset.act;
-  if (act === 'tab') { tab = t.dataset.tab; render(); if (tab === 'discover' && !disc) { await loadDiscover(); render(); } }
+  if (act === 'tab') { tab = t.dataset.tab; render(); if (tab === 'discover' && (!disc || disc.err)) { await loadDiscover(); render(); } }
   else if (act === 'add') {
     await addShow(id, t.dataset.name, t.dataset.poster, t.dataset.status);
     $('#results').hidden = true; $('#q').value = '';
@@ -724,6 +742,8 @@ document.addEventListener('click', async e => {
   else if (act === 'stepnext') { const s = S.shows[id], n = nextEp(s); if (n) { S.log = (S.log || []).concat(Date.now()).slice(-5000); setProg(s, n); } }
   else if (act === 'stepback') { const s = S.shows[id]; if (S.log && S.log.length && Date.now() - S.log[S.log.length - 1] < 120000) S.log.pop(); setProg(s, prevEp(s)); }
   else if (act === 'editprog') { editing.has(+id) ? editing.delete(+id) : editing.add(+id); render(); }
+  else if (act === 'finish') { setStatus(id, 'watched'); toast('Moved to Watched'); }
+  else if (act === 'notyet') { const s = S.shows[id]; if (s) { s.dismissed = true; save(); render(); } }
   else if (act === 'more') { moreOpen.has(+id) ? moreOpen.delete(+id) : moreOpen.add(+id); render(); }
   else if (act === 'caught') { const s = S.shows[id]; s.lastS = s.info.last.s; s.lastE = s.info.last.e; save(); render(); }
   else if (act === 'settings') openSettings();
@@ -745,7 +765,7 @@ document.addEventListener('change', e => {
   if (t.dataset.act === 'selE') { const s = S.shows[t.dataset.id]; setProg(s, {s:s.lastS || 0, e:parseInt(t.value) || 0}); }
   if (t.dataset.act === 'prog') { S.shows[t.dataset.id][t.dataset.k] = Math.max(0, parseInt(t.value) || 0); save(); render(); }
 });
-$('#refreshBtn').onclick = async () => { const b = $('#refreshBtn'); if (b.classList.contains('busy')) return; b.classList.add('busy'); toast('Checking for updates…'); await refreshAll(true); disc = null; render(); b.classList.remove('busy'); toast('Up to date'); };
+$('#refreshBtn').onclick = async () => { const b = $('#refreshBtn'); if (b.classList.contains('busy')) return; if (!navigator.onLine) { toast('You’re offline. Refresh needs a connection.'); return; } b.classList.add('busy'); toast('Checking for updates…'); await refreshAll(true); disc = null; render(); b.classList.remove('busy'); toast('Up to date'); };
 $('#settingsBtn').onclick = openSettings;
 
 /* ---------- settings ---------- */
@@ -870,7 +890,7 @@ async function openDetail(id, fromHash){
     const nx = s ? nextEp(s) : null;
     det.season = nx ? nx.s : (s && (s.lastS || 0) > 0 ? s.lastS : (list.length ? list[0].season_number : 1));
     renderDetail();
-  } catch(e){ if (det && det.id === id) { det.err = e.message; renderDetail(); } }
+  } catch(e){ if (det && det.id === id) { det.err = e.message === NET_ERR ? 'You’re offline. Show details need a connection.' : e.message; renderDetail(); } }
 }
 function closeDetail(fromHash){
   const pushed = det && det.pushed;
@@ -972,7 +992,7 @@ function renderDetail(){
   const body = det.tab === 'episodes' ? episodesTab(d, s) : detailsTab(d, info);
   el.innerHTML = `<div class="hero" style="${bg ? 'background-image:url(' + bg + ')' : ''}">${back}<div class="dwrap hero-in"><h1 class="dtitle">${esc(d.name)}</h1><div class="dmeta">${line1}</div><div class="dmeta">${line2}</div><div class="pillrow">${pill}</div></div></div>
     <div class="dwrap dbody"><div class="prov">${whereHtml({info})}<div class="attr">PROVIDED BY<b>JustWatch</b></div></div>
-    <div class="seg" role="tablist"><button role="tab" aria-selected="${det.tab === 'details'}" data-act="dtab" data-tab="details">Details</button><button role="tab" aria-selected="${det.tab === 'episodes'}" data-act="dtab" data-tab="episodes">Episodes</button></div>
+    ${s && finishedCheck(s) ? finishBanner(s) : ''}<div class="seg" role="tablist"><button role="tab" aria-selected="${det.tab === 'details'}" data-act="dtab" data-tab="details">Details</button><button role="tab" aria-selected="${det.tab === 'episodes'}" data-act="dtab" data-tab="episodes">Episodes</button></div>
     ${body}</div>`;
 }
 window.addEventListener('hashchange', () => {
@@ -987,7 +1007,7 @@ const GF = 'rewind-room.json', GD = 'Rewind Room data';
 let syncing = false, syncTimer;
 function payload(){
   const shows = {};
-  for (const [id, s] of Object.entries(S.shows)) shows[id] = {id:s.id, name:s.name, poster:s.poster, status:s.status, lastS:s.lastS || 0, lastE:s.lastE || 0, added:s.added, auto:!!s.auto};
+  for (const [id, s] of Object.entries(S.shows)) shows[id] = {id:s.id, name:s.name, poster:s.poster, status:s.status, lastS:s.lastS || 0, lastE:s.lastE || 0, added:s.added, auto:!!s.auto, dismissed:!!s.dismissed};
   return {v:1, modified:S.modified || 0, shows, seen:S.seen || {}, log:S.log || [], region:S.settings.region, providers:S.settings.providers, providersSet:S.settings.providersSet, autoAdd:S.settings.autoAdd};
 }
 function applyRemote(r){
@@ -1022,7 +1042,7 @@ function setSyncStatus(msg){
   el.textContent = msg || (!y.token ? 'Not connected. Your list is only stored in this browser.' : y.error ? 'Problem: ' + y.error : y.at ? 'Connected. Last synced ' + new Date(y.at).toLocaleTimeString() + '.' : 'Connected. Not synced yet.');
 }
 async function syncNow(manual){
-  if (syncing || !(S.sync && S.sync.token)) return;
+  if (syncing || !navigator.onLine || !(S.sync && S.sync.token)) return;
   syncing = true; setSyncStatus('Syncing…');
   try {
     if (!S.sync.gistId) {
@@ -1050,9 +1070,9 @@ async function syncNow(manual){
     S.sync.at = Date.now(); S.sync.error = ''; save(false);
     if (manual) toast('Synced');
   } catch(e){
-    S.sync.error = e.message === 'Failed to fetch' ? 'Couldn’t reach GitHub.' : e.message;
-    save(false);
-    if (manual) toast(S.sync.error);
+    const net = e.message === 'Failed to fetch';
+    if (!net) { S.sync.error = e.message; save(false); }
+    if (manual) toast(net ? 'Couldn’t reach GitHub.' : e.message);
   } finally { syncing = false; setSyncStatus(); }
 }
 function applyToken(){
@@ -1072,6 +1092,20 @@ function placeTools(){
 }
 placeTools();
 toolsMQ.addEventListener('change', placeTools);
+
+/* ---------- offline support ---------- */
+function updateOnline(){ const el = $('#offline'); if (el) el.hidden = navigator.onLine; }
+window.addEventListener('offline', updateOnline);
+window.addEventListener('online', () => {
+  updateOnline();
+  if (disc && disc.err) disc = null;
+  syncNow();
+  if (S.settings.key) refreshAll().then(render);
+});
+updateOnline();
+if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
 
 /* ---------- start ---------- */
 (async function init(){
