@@ -243,7 +243,7 @@ header .tools{padding-bottom:0}
 
 <dialog id="dlg">
   <h3>Settings</h3>
-  <p class="small muted" style="margin:-6px 0 0">Version: Nov 9, build 4 (offline mode, finished-show prompt)</p>
+  <p class="small muted" style="margin:-6px 0 0">Version: Nov 9, build 5 (up next episode names)</p>
   <label class="f" for="key">TMDB API key or read access token</label>
   <input id="key" type="password" autocomplete="off" placeholder="Paste your key here">
   <p class="small muted">Free from themoviedb.org: create an account, then Settings, API. The key stays in this browser and is only sent to TMDB.</p>
@@ -443,6 +443,38 @@ function editorHtml(s){
     ${S0 ? `<select data-act="selE" data-id="${s.id}" aria-label="Episode"><option value="0">No episodes of this season</option>${Array.from({length:cnt}, (_, k) => `<option value="${k + 1}" ${k + 1 === E0 ? 'selected' : ''}>Episode ${k + 1}</option>`).join('')}</select>` : ''}
   </div>`;
 }
+/* names of upcoming episodes, saved separately from the main list */
+const NAMES_LS = 'myshows.names.v1';
+let epCache = {};
+try { epCache = JSON.parse(localStorage.getItem(NAMES_LS)) || {}; } catch(e){}
+const nameReq = new Set();
+function epName(id, nx){
+  if (!nx) return '';
+  const c = epCache[id + '-' + nx.s];
+  return c && c.n && c.n[nx.e] ? c.n[nx.e] : '';
+}
+function ensureNames(){
+  if (tab !== 'watching' || !S.settings.key || !navigator.onLine) return;
+  for (const s of Object.values(S.shows)) {
+    if (s.status !== 'watching' || !s.info) continue;
+    const nx = nextEp(s); if (!nx) continue;
+    const k = s.id + '-' + nx.s, c = epCache[k];
+    const fresh = c && c.n && c.n[nx.e] && Date.now() - c.at < 7 * 864e5;
+    if (fresh || nameReq.has(k)) continue;
+    nameReq.add(k);
+    loadNames(s.id, nx.s, k);
+  }
+}
+async function loadNames(id, sn, k){
+  try {
+    const r = await api('/tv/' + id + '/season/' + sn);
+    const n = {};
+    (r.episodes || []).forEach(e => { n[e.episode_number] = e.name; });
+    epCache[k] = {at: Date.now(), n};
+    try { localStorage.setItem(NAMES_LS, JSON.stringify(epCache)); } catch(e){}
+    if (tab === 'watching') render();
+  } catch(e){}
+}
 function progressHtml(s, isNew){
   const S0 = s.lastS || 0, E0 = s.lastE || 0, t = airedTotals(s);
   const pct = t && t.total ? Math.round(100 * t.watched / t.total) : 0;
@@ -450,6 +482,7 @@ function progressHtml(s, isNew){
   return `<div class="prog">
     ${t ? `<div class="bar" role="img" aria-label="${pct}% watched"><i style="width:${pct}%"></i></div>` : ''}
     <div class="row small"><b>${S0 || E0 ? '<span class="pl">Season ' + S0 + ', episode ' + E0 + '</span><span class="ps">S' + S0 + 'E' + E0 + '</span>' : 'Not started'}</b>${t ? `<span class="muted">${t.watched} of ${t.total} watched</span>` : ''}</div>
+    ${nx ? `<div class="small upnext">Up next: <b>${ep(nx.s, nx.e)}</b>${epName(s.id, nx) ? ', ' + esc(epName(s.id, nx)) : ''}</div>` : ''}
     <div class="row">
       <button class="btn small ${nx ? 'primary' : ''}" data-act="stepnext" data-id="${s.id}" ${nx ? '' : 'disabled'}>${nx ? 'Watched ' + ep(nx.s, nx.e) : 'Nothing new to watch'}</button>
       <button class="btn small push moreBtn" data-act="more" data-id="${s.id}" aria-label="More options" aria-expanded="${moreOpen.has(s.id)}">\u22ef</button>
@@ -673,6 +706,7 @@ function render(){
   if (!S.settings.key) { m.innerHTML = onboardView(); return; }
   m.innerHTML = tab === 'upcoming' ? upcomingView() : tab === 'discover' ? discoverView() : tab === 'profile' ? profileView() : listView(tab);
   if (det) renderDetail();
+  ensureNames();
 }
 
 /* ---------- actions ---------- */
